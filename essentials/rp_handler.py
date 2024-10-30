@@ -22,6 +22,7 @@ COMFY_HOST = "127.0.0.1:8188"
 # Enforce a clean state after each job is done
 # see https://docs.runpod.io/docs/handler-additional-controls#refresh-worker
 REFRESH_WORKER = os.environ.get("REFRESH_WORKER", "false").lower() == "true"
+RETURN_INT = os.environ.get("RETURN_INT", "false").lower() == "true"
 
 
 def validate_input(job_input):
@@ -365,10 +366,16 @@ def handler(job):
     except Exception as e:
         return {"error": f"Error waiting for image generation: {str(e)}"}
 
-    # Get the generated image and return it as URL in an AWS bucket or as base64
-    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"])
-
-    result = {**images_result, "refresh_worker": REFRESH_WORKER}
+    if (RETURN_INT):
+        outputs = history[prompt_id].get("outputs")
+        result = {
+                    "result": int(list(list(outputs.values())[0].values())[0][0]),
+                     "refresh_worker": REFRESH_WORKER
+                }
+    else:
+        # Get the generated image and return it as URL in an AWS bucket or as base64
+        images_result = process_output_images(history[prompt_id].get("outputs"), job["id"])
+        result = {**images_result, "refresh_worker": REFRESH_WORKER}
 
     return result
 
